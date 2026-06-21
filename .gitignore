@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+data/images/*
+!data/images/.gitkeep
+data/recipes.db
+.streamlit/secrets.toml
