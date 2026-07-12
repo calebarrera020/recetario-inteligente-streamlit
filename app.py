@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+import base64
 from pathlib import Path
 
 import pandas as pd
@@ -23,7 +25,7 @@ from recipe_app.services import (
 
 st.set_page_config(
     page_title="Recetario Inteligente",
-    layout="wide",
+    layout="centered",
     initial_sidebar_state="collapsed",
 )
 
@@ -31,34 +33,34 @@ st.set_page_config(
 def apply_theme(theme_name: str) -> None:
     themes = {
         "Claro": {
-            "bg": "#fffbfd",
-            "bg_second": "#f7effa",
+            "bg": "#fff9fc",
+            "bg_second": "#f6ebfb",
             "panel": "#fffdfd",
-            "panel_alt": "#fcf6ff",
-            "text": "#433255",
-            "muted": "#8d7d9f",
-            "accent": "#cfb0ec",
-            "accent_soft": "#f4e9ff",
-            "accent_strong": "#ad84d7",
-            "border": "#eadcf7",
-            "success": "#5c9c73",
-            "sidebar": "rgba(255, 251, 253, 0.98)",
+            "panel_alt": "#fcf5ff",
+            "text": "#3d3150",
+            "muted": "#8f819f",
+            "accent": "#d8b9f1",
+            "accent_soft": "#f3e6ff",
+            "accent_strong": "#b486de",
+            "border": "#eadbf8",
+            "shadow": "rgba(137, 102, 178, 0.12)",
             "button_text": "#ffffff",
+            "shell_shadow": "rgba(126, 93, 168, 0.22)",
         },
         "Oscuro": {
-            "bg": "#2a213a",
-            "bg_second": "#3a2d50",
-            "panel": "#312744",
-            "panel_alt": "#3f3158",
+            "bg": "#2e2441",
+            "bg_second": "#3f3158",
+            "panel": "#372b4c",
+            "panel_alt": "#43325c",
             "text": "#fbf7ff",
-            "muted": "#d5c7e7",
-            "accent": "#d6b8f3",
-            "accent_soft": "#51406e",
-            "accent_strong": "#ecdfff",
-            "border": "#7d6899",
-            "success": "#87d7a0",
-            "sidebar": "rgba(42, 33, 58, 0.96)",
+            "muted": "#d7cbe6",
+            "accent": "#d9bdf2",
+            "accent_soft": "#564170",
+            "accent_strong": "#efdefe",
+            "border": "#826c9b",
+            "shadow": "rgba(0, 0, 0, 0.18)",
             "button_text": "#ffffff",
+            "shell_shadow": "rgba(0, 0, 0, 0.28)",
         },
     }
     palette = themes[theme_name]
@@ -76,133 +78,198 @@ def apply_theme(theme_name: str) -> None:
                 --accent-soft: {palette["accent_soft"]};
                 --accent-strong: {palette["accent_strong"]};
                 --border: {palette["border"]};
-                --success: {palette["success"]};
+                --shadow: {palette["shadow"]};
                 --button-text: {palette["button_text"]};
+                --shell-shadow: {palette["shell_shadow"]};
             }}
             .stApp {{
                 background:
-                    radial-gradient(circle at 0% 0%, rgba(214, 184, 243, 0.22) 0%, transparent 28%),
-                    radial-gradient(circle at 100% 12%, rgba(244, 233, 255, 0.55) 0%, transparent 20%),
+                    radial-gradient(circle at 0% 0%, rgba(216,185,241,0.22) 0%, transparent 28%),
+                    radial-gradient(circle at 100% 12%, rgba(243,230,255,0.52) 0%, transparent 20%),
                     linear-gradient(180deg, var(--bg) 0%, var(--bg-second) 100%);
                 color: var(--text);
             }}
             .main .block-container {{
-                padding-top: 1.35rem;
-                padding-bottom: 3rem;
+                max-width: 460px;
+                padding-top: 0.65rem;
+                padding-bottom: 1.1rem;
+                padding-left: 0.55rem;
+                padding-right: 0.55rem;
             }}
-            h1, h2, h3, h4, h5, h6, p, label, span {{
-                color: var(--text);
+            [data-testid="stSidebar"],
+            [data-testid="collapsedControl"] {{
+                display: none;
             }}
-            [data-testid="stSidebar"] {{
-                background: {palette["sidebar"]};
-                border-right: 1px solid var(--border);
-            }}
-            [data-testid="stMetric"] {{
-                background: linear-gradient(180deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05));
-                border: 1px solid var(--border);
-                border-radius: 20px;
-                padding: 0.7rem;
-            }}
-            [data-testid="stMetricValue"],
-            [data-testid="stMetricLabel"] {{
+            h1, h2, h3, h4, h5, h6, p, span, label {{
                 color: var(--text);
             }}
             div[role="radiogroup"] {{
-                gap: 0.5rem;
+                gap: 0.4rem;
                 flex-wrap: wrap;
             }}
             div[role="radiogroup"] label {{
-                background: rgba(255,255,255,0.42);
+                background: rgba(255,255,255,0.4);
                 border: 1px solid var(--border);
                 border-radius: 999px;
-                padding: 0.45rem 0.95rem;
+                padding: 0.42rem 0.82rem;
             }}
-            .hero {{
-                background:
-                    linear-gradient(135deg, rgba(244,233,255,0.9) 0%, rgba(255,255,255,0.68) 100%),
-                    var(--panel);
+            .phone-shell {{
+                background: linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0.12));
                 border: 1px solid var(--border);
-                border-radius: 30px;
-                padding: 1.5rem;
-                margin-bottom: 1rem;
-                box-shadow: 0 18px 50px rgba(86, 66, 117, 0.08);
+                border-radius: 34px;
+                box-shadow: 0 28px 70px var(--shell-shadow);
+                padding: 0.75rem;
             }}
-            .hero h1 {{
-                margin-bottom: 0.45rem;
-                font-size: 3rem;
-                letter-spacing: -0.03em;
-            }}
-            .small-note {{
-                color: var(--muted);
-                font-size: 1rem;
-            }}
-            .section-intro {{
-                color: var(--muted);
-                margin-bottom: 0.8rem;
-            }}
-            .quick-card {{
-                background: var(--panel-alt);
-                border: 1px solid var(--border);
-                border-radius: 20px;
-                padding: 1rem;
+            .app-top {{
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
                 margin-bottom: 1rem;
             }}
-            .action-card {{
-                background: linear-gradient(180deg, rgba(255,255,255,0.26), rgba(255,255,255,0.08));
+            .hello-title {{
+                font-size: 1.62rem;
+                font-weight: 800;
+                line-height: 1.06;
+                margin: 0;
+            }}
+            .hello-subtitle {{
+                color: var(--muted);
+                margin-top: 0.2rem;
+                font-size: 0.88rem;
+            }}
+            .search-block {{
+                background: rgba(255,255,255,0.58);
                 border: 1px solid var(--border);
                 border-radius: 18px;
-                padding: 1rem;
-                min-height: 138px;
-                margin-bottom: 0.6rem;
+                padding: 0.24rem 0.65rem 0.05rem;
+                margin-bottom: 0.75rem;
             }}
-            .action-title {{
-                color: var(--text);
-                font-size: 1rem;
-                font-weight: 700;
-                margin-bottom: 0.35rem;
+            .category-chip {{
+                text-align: center;
+                padding: 0.2rem;
             }}
-            .inline-kicker {{
-                color: var(--muted);
-                font-size: 0.95rem;
-            }}
-            .stat-strip {{
-                display: grid;
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-                gap: 0.9rem;
-                margin: 1rem 0 1.1rem;
-            }}
-            .stat-card {{
-                background: var(--panel-alt);
+            .category-circle {{
+                width: 48px;
+                height: 48px;
+                border-radius: 999px;
+                background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.4));
                 border: 1px solid var(--border);
-                border-radius: 22px;
-                padding: 1rem;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 0.35rem;
+                font-size: 1.2rem;
+                box-shadow: 0 10px 22px var(--shadow);
             }}
-            .stat-label {{
+            .category-text {{
                 color: var(--muted);
-                font-size: 0.92rem;
-                margin-bottom: 0.25rem;
+                font-size: 0.68rem;
             }}
-            .stat-value {{
-                color: var(--text);
-                font-size: 1.7rem;
-                font-weight: 700;
+            .section-title {{
+                font-size: 0.98rem;
+                font-weight: 800;
+                margin: 0.75rem 0 0.55rem;
             }}
-            .tag {{
+            .recipe-card {{
+                background: var(--panel);
+                border: 1px solid var(--border);
+                border-radius: 20px;
+                overflow: hidden;
+                box-shadow: 0 12px 28px var(--shadow);
+                margin-bottom: 0.85rem;
+            }}
+            .recipe-thumb {{
+                height: 112px;
+                background: linear-gradient(135deg, var(--accent-soft), rgba(255,255,255,0.7));
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 2rem;
+            }}
+            .recipe-body {{
+                padding: 0.72rem 0.78rem 0.82rem;
+            }}
+            .recipe-title {{
+                margin: 0;
+                font-weight: 800;
+                font-size: 0.94rem;
+                line-height: 1.2;
+            }}
+            .recipe-soft {{
+                color: var(--muted);
+                font-size: 0.78rem;
+                margin-top: 0.28rem;
+                margin-bottom: 0.45rem;
+            }}
+            .mini-chip {{
                 display: inline-block;
                 background: var(--accent-soft);
                 color: var(--text);
-                border: 1px solid rgba(255,255,255,0.06);
                 border-radius: 999px;
-                padding: 0.2rem 0.7rem;
-                margin-right: 0.35rem;
-                margin-bottom: 0.35rem;
-                font-size: 0.84rem;
+                padding: 0.18rem 0.55rem;
+                font-size: 0.76rem;
+                margin-right: 0.28rem;
+                margin-bottom: 0.28rem;
+            }}
+            .detail-hero {{
+                background: var(--panel);
+                border: 1px solid var(--border);
+                border-radius: 24px;
+                padding: 0.75rem;
+                box-shadow: 0 14px 32px var(--shadow);
+                margin-bottom: 1rem;
+            }}
+            .detail-title {{
+                font-size: 1.15rem;
+                font-weight: 800;
+                line-height: 1.14;
+                margin: 0.65rem 0 0.28rem;
+            }}
+            .stats-row {{
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 0.45rem;
+                margin-top: 0.7rem;
+            }}
+            .stat-pill {{
+                background: rgba(255,255,255,0.45);
+                border: 1px solid var(--border);
+                border-radius: 16px;
+                padding: 0.55rem 0.4rem;
+                text-align: center;
+            }}
+            .stat-pill strong {{
+                display: block;
+                font-size: 0.78rem;
+            }}
+            .stat-pill span {{
+                color: var(--muted);
+                font-size: 0.72rem;
+            }}
+            .ingredient-card, .step-card {{
+                background: rgba(255,255,255,0.46);
+                border: 1px solid var(--border);
+                border-radius: 17px;
+                padding: 0.8rem;
+                margin-bottom: 0.55rem;
+            }}
+            .step-number {{
+                width: 30px;
+                height: 30px;
+                border-radius: 999px;
+                background: var(--accent-strong);
+                color: var(--button-text);
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                font-weight: 700;
+                margin-right: 0.5rem;
             }}
             .soft-divider {{
                 height: 1px;
                 width: 100%;
                 background: linear-gradient(90deg, transparent, var(--border), transparent);
-                margin: 0.7rem 0 1rem;
+                margin: 0.75rem 0;
             }}
             .stButton > button {{
                 border-radius: 999px;
@@ -210,44 +277,42 @@ def apply_theme(theme_name: str) -> None:
                 background: linear-gradient(180deg, var(--accent), var(--accent-strong));
                 color: var(--button-text);
                 width: 100%;
-            }}
-            .stDownloadButton > button {{
-                border-radius: 999px;
+                min-height: 44px;
             }}
             div[data-baseweb="select"] > div,
             div[data-baseweb="input"] > div,
             textarea,
             input {{
-                background: rgba(255,255,255,0.06);
+                background: transparent;
                 color: var(--text);
+                border: none;
             }}
             [data-testid="stExpander"] {{
                 border: 1px solid var(--border);
                 border-radius: 18px;
-                background: rgba(255,255,255,0.04);
+                background: rgba(255,255,255,0.06);
             }}
-            @media (max-width: 900px) {{
+            @media (max-width: 520px) {{
                 .main .block-container {{
-                    padding-top: 1rem;
-                    padding-left: 0.8rem;
-                    padding-right: 0.8rem;
-                    padding-bottom: 2rem;
+                    padding-left: 0.42rem;
+                    padding-right: 0.42rem;
                 }}
-                .hero {{
-                    padding: 1.15rem;
+                .phone-shell {{
                     border-radius: 24px;
+                    padding: 0.58rem;
                 }}
-                .hero h1 {{
-                    font-size: 2rem;
-                    line-height: 1.08;
+                div[role="radiogroup"] label {{
+                    padding: 0.34rem 0.66rem;
                 }}
-                .stat-strip {{
-                    grid-template-columns: 1fr;
+                .recipe-card {{
+                    border-radius: 18px;
                 }}
-                [data-testid="column"] {{
-                    width: 100% !important;
-                    flex: 1 1 100% !important;
-                    min-width: 100% !important;
+                .detail-hero {{
+                    border-radius: 20px;
+                    padding: 0.62rem;
+                }}
+                .ingredient-card, .step-card {{
+                    padding: 0.68rem;
                 }}
             }}
         </style>
@@ -261,12 +326,36 @@ def ensure_state() -> None:
         st.session_state.theme = "Claro"
     if "new_form_version" not in st.session_state:
         st.session_state.new_form_version = 0
-    if "active_section" not in st.session_state:
-        st.session_state.active_section = "Inicio"
+    if "current_section" not in st.session_state:
+        st.session_state.current_section = "Recetas"
+    if "nav_choice" not in st.session_state:
+        st.session_state.nav_choice = "Recetas"
+    if "pending_section" not in st.session_state:
+        st.session_state.pending_section = None
+    if "selected_recipe_id" not in st.session_state:
+        st.session_state.selected_recipe_id = None
+    if "detail_view" not in st.session_state:
+        st.session_state.detail_view = "Ingredientes"
+    if "home_search" not in st.session_state:
+        st.session_state.home_search = ""
+
+
+def greeting_text() -> str:
+    return "Bienvenida"
 
 
 def reset_new_recipe_form() -> None:
     st.session_state.new_form_version += 1
+
+
+def open_recipe_detail(recipe_id: int) -> None:
+    st.session_state.selected_recipe_id = recipe_id
+    st.session_state.pending_section = "Detalle"
+
+
+def close_recipe_detail() -> None:
+    st.session_state.selected_recipe_id = None
+    st.session_state.pending_section = "Recetas"
 
 
 def get_recipe_defaults(recipe: dict | None = None) -> dict:
@@ -294,10 +383,7 @@ def get_recipe_defaults(recipe: dict | None = None) -> dict:
         "notes": recipe["notes"],
         "favorite": bool(recipe["favorite"]),
         "ingredients": [
-            {
-                "quantity": ingredient["quantity"],
-                "ingredient_name": ingredient["ingredient_name"],
-            }
+            {"quantity": ingredient["quantity"], "ingredient_name": ingredient["ingredient_name"]}
             for ingredient in recipe["ingredients"]
         ]
         or [{"quantity": "", "ingredient_name": ""}],
@@ -321,61 +407,30 @@ def payload_from_editor(widget_prefix: str, ingredient_rows: list[dict], step_ro
 
 
 def render_editor(widget_prefix: str, defaults: dict) -> tuple[list[dict], list[str], list]:
-    st.text_input(
-        "Nombre de la receta",
-        key=f"{widget_prefix}_recipe_name",
-        value=defaults["name"],
-        placeholder="Ejemplo: Sopa de pollo",
-    )
-    col1, col2, col3 = st.columns(3)
+    st.text_input("Nombre de la receta", key=f"{widget_prefix}_recipe_name", value=defaults["name"])
+    col1, col2 = st.columns(2)
     with col1:
-        st.text_input(
-            "Categoria",
-            key=f"{widget_prefix}_recipe_category",
-            value=defaults["category"],
-            placeholder="Almuerzo, postre, cena...",
-        )
+        st.text_input("Categoria", key=f"{widget_prefix}_recipe_category", value=defaults["category"])
     with col2:
-        st.number_input(
-            "Tiempo (minutos)",
-            min_value=0,
-            step=5,
-            key=f"{widget_prefix}_recipe_time",
-            value=defaults["prep_time_minutes"],
-        )
-    with col3:
-        st.number_input(
-            "Porciones",
-            min_value=0,
-            step=1,
-            key=f"{widget_prefix}_recipe_servings",
-            value=defaults["servings"],
-        )
-
-    col4, col5 = st.columns([2, 1])
-    with col4:
-        difficulty_options = ["Facil", "Media", "Dificil"]
         st.selectbox(
             "Dificultad",
-            difficulty_options,
+            ["Facil", "Media", "Dificil"],
             key=f"{widget_prefix}_recipe_difficulty",
-            index=difficulty_options.index(defaults["difficulty"]),
+            index=["Facil", "Media", "Dificil"].index(defaults["difficulty"]),
         )
-    with col5:
-        st.checkbox(
-            "Marcar como favorita",
-            key=f"{widget_prefix}_recipe_favorite",
-            value=defaults["favorite"],
-        )
-
+    col3, col4 = st.columns(2)
+    with col3:
+        st.number_input("Tiempo (minutos)", min_value=0, step=5, key=f"{widget_prefix}_recipe_time", value=defaults["prep_time_minutes"])
+    with col4:
+        st.number_input("Porciones", min_value=0, step=1, key=f"{widget_prefix}_recipe_servings", value=defaults["servings"])
+    st.checkbox("Marcar como favorita", key=f"{widget_prefix}_recipe_favorite", value=defaults["favorite"])
     st.text_area(
         "Descripcion",
         key=f"{widget_prefix}_recipe_description",
         value=defaults["description"],
-        placeholder="Cuenta brevemente que hace especial esta receta.",
-        height=100,
+        height=90,
+        placeholder="Cuenta brevemente de que trata la receta.",
     )
-
     st.subheader("Ingredientes")
     ingredients_df = pd.DataFrame(defaults["ingredients"])
     edited_ingredients = st.data_editor(
@@ -383,48 +438,39 @@ def render_editor(widget_prefix: str, defaults: dict) -> tuple[list[dict], list[
         key=f"{widget_prefix}_ingredients_editor",
         num_rows="dynamic",
         width="stretch",
-        column_config={
-            "quantity": "Cantidad",
-            "ingredient_name": "Ingrediente",
-        },
+        column_config={"quantity": "Cantidad", "ingredient_name": "Ingrediente"},
     )
-
     st.subheader("Pasos")
     steps_buffer_key = f"{widget_prefix}_steps_buffer"
     if steps_buffer_key not in st.session_state:
         st.session_state[steps_buffer_key] = defaults["steps"]
-
-    step_rows: list[str] = []
     current_steps = st.session_state[steps_buffer_key] or [""]
+    step_rows: list[str] = []
     for index, current_step in enumerate(current_steps, start=1):
-        step_key = f"{widget_prefix}_step_{index}"
         step_rows.append(
             st.text_area(
                 f"Paso {index}",
-                key=step_key,
+                key=f"{widget_prefix}_step_{index}",
                 value=current_step,
-                placeholder="Describe este paso...",
-                height=95,
+                height=85,
             )
         )
     st.session_state[steps_buffer_key] = step_rows or [""]
-
     add_col, remove_col = st.columns(2)
     with add_col:
-        if st.button("Agregar otro paso", key=f"{widget_prefix}_add_step"):
+        if st.button("Agregar paso", key=f"{widget_prefix}_add_step"):
             st.session_state[steps_buffer_key] = (step_rows or [""]) + [""]
             st.rerun()
     with remove_col:
-        if len(current_steps) > 1 and st.button("Quitar ultimo paso", key=f"{widget_prefix}_remove_step"):
+        if len(current_steps) > 1 and st.button("Quitar ultimo", key=f"{widget_prefix}_remove_step"):
             st.session_state[steps_buffer_key] = step_rows[:-1] or [""]
             st.rerun()
-
     st.text_area(
-        "Notas personales",
+        "Notas",
         key=f"{widget_prefix}_recipe_notes",
         value=defaults["notes"],
-        placeholder="Trucos, observaciones o ideas para mejorar la receta.",
-        height=100,
+        height=85,
+        placeholder="Consejos, trucos o recordatorios.",
     )
     uploaded_files = st.file_uploader(
         "Fotos de referencia",
@@ -432,60 +478,38 @@ def render_editor(widget_prefix: str, defaults: dict) -> tuple[list[dict], list[
         accept_multiple_files=True,
         key=f"{widget_prefix}_recipe_images",
     )
-
     return edited_ingredients.to_dict("records"), step_rows, uploaded_files
 
 
-def render_recipe_card(recipe: dict, *, show_full: bool = False) -> None:
-    tags = [
-        recipe["category"] or "Sin categoria",
-        f'{recipe["prep_time_minutes"]} min' if recipe["prep_time_minutes"] else "Tiempo libre",
-        f'{recipe["servings"]} porciones' if recipe["servings"] else "Porciones libres",
-        recipe["difficulty"],
-    ]
-    with st.container(border=True):
-        title_col, favorite_col = st.columns([5, 2])
-        with title_col:
-            st.markdown(f"### {recipe['name']}")
-        with favorite_col:
-            if recipe["favorite"]:
-                st.markdown("`Favorita`")
-
-        st.markdown("".join([f'<span class="tag">{tag}</span>' for tag in tags]), unsafe_allow_html=True)
-        st.caption(recipe["description"] or "Sin descripcion todavia.")
-
-        if recipe["images"]:
-            image_cols = st.columns(min(len(recipe["images"]), 3))
-            for index, image in enumerate(recipe["images"][:3]):
-                image_path = Path(image["file_path"])
-                if image_path.exists():
-                    image_cols[index].image(str(image_path), width="stretch")
-
-        if show_full:
-            st.markdown("**Ingredientes**")
-            for ingredient in recipe["ingredients"]:
-                amount = f'{ingredient["quantity"]} - ' if ingredient["quantity"] else ""
-                st.write(f"- {amount}{ingredient['ingredient_name']}")
-
-            st.markdown("**Pasos**")
-            for step in recipe["steps"]:
-                st.write(f"{step['step_number']}. {step['instruction']}")
-
-            if recipe["notes"]:
-                st.markdown("**Notas**")
-                st.write(recipe["notes"])
-        else:
-            with st.expander("Ver receta completa"):
-                render_recipe_card(recipe, show_full=True)
+def recipe_image_or_placeholder(recipe: dict, key: str) -> None:
+    if recipe["images"]:
+        first_image = recipe["images"][0]
+        if first_image.get("image_data_base64"):
+            st.image(base64.b64decode(first_image["image_data_base64"]), width="stretch")
+            return
+        image_path = Path(first_image["file_path"])
+        if image_path.exists():
+            st.image(str(image_path), width="stretch")
+            return
+    st.markdown(f'<div class="recipe-thumb">{key}</div>', unsafe_allow_html=True)
 
 
-def render_recipe_collection(title: str, recipes: list[dict], empty_message: str) -> None:
-    st.subheader(title)
-    if not recipes:
-        st.info(empty_message)
-        return
-    for recipe in recipes:
-        render_recipe_card(recipe, show_full=False)
+def render_recipe_card(recipe: dict, button_key: str, emoji: str = "🍲") -> None:
+    st.markdown('<div class="recipe-card">', unsafe_allow_html=True)
+    recipe_image_or_placeholder(recipe, emoji)
+    st.markdown('<div class="recipe-body">', unsafe_allow_html=True)
+    st.markdown(f'<p class="recipe-title">{recipe["name"]}</p>', unsafe_allow_html=True)
+    st.markdown(
+        f'<p class="recipe-soft">{recipe["category"] or "Sin categoria"} · {recipe["prep_time_minutes"] or 0} min</p>',
+        unsafe_allow_html=True,
+    )
+    if recipe["favorite"]:
+        st.markdown('<span class="mini-chip">Favorita</span>', unsafe_allow_html=True)
+    st.markdown(f'<span class="mini-chip">{recipe["difficulty"]}</span>', unsafe_allow_html=True)
+    if st.button("Abrir", key=button_key):
+        open_recipe_detail(recipe["id"])
+        st.rerun()
+    st.markdown("</div></div>", unsafe_allow_html=True)
 
 
 def build_full_recipe_list() -> list[dict]:
@@ -497,332 +521,297 @@ def build_full_recipe_list() -> list[dict]:
     return recipes
 
 
-ensure_state()
-seed_sample_data()
-apply_theme(st.session_state.theme)
-
-stats = get_dashboard_stats()
-full_recipes = build_full_recipe_list()
-favorite_recipes = [recipe for recipe in full_recipes if recipe["favorite"]]
-recent_recipes = sorted(full_recipes, key=lambda recipe: recipe["updated_at"], reverse=True)
-
-st.sidebar.title("Recetario Inteligente")
-selected_theme = st.sidebar.radio(
-    "Apariencia",
-    ["Claro", "Oscuro"],
-    index=0 if st.session_state.theme == "Claro" else 1,
-)
-if selected_theme != st.session_state.theme:
-    st.session_state.theme = selected_theme
-    st.rerun()
-
-st.sidebar.metric("Recetas guardadas", stats["recipes"])
-st.sidebar.metric("Ingredientes unicos", stats["ingredients"])
-st.sidebar.metric("Favoritas", stats["favorites"])
-st.sidebar.caption("Las favoritas aparecen en Inicio y tambien pueden filtrarse en Buscar.")
-
-st.markdown(
-    """
-    <div class="hero">
-        <h1>Recetario Inteligente</h1>
-        <p class="small-note">
-            Guarda recetas, adjunta fotos, encuentra ideas segun tus ingredientes y revisa tus favoritas sin perderte entre formularios.
-        </p>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-st.markdown(
-    f"""
-    <div class="stat-strip">
-        <div class="stat-card">
-            <div class="stat-label">Recetas guardadas</div>
-            <div class="stat-value">{stats["recipes"]}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Favoritas visibles</div>
-            <div class="stat-value">{stats["favorites"]}</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-label">Ingredientes registrados</div>
-            <div class="stat-value">{stats["ingredients"]}</div>
-        </div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
-sections = ["Inicio", "Agregar receta", "Buscar recetas", "Mi cocina", "Administrar", "Compartir"]
-active_section = st.radio(
-    "Navegacion",
-    sections,
-    key="active_section",
-    horizontal=True,
-    label_visibility="collapsed",
-)
-
-st.markdown('<div class="soft-divider"></div>', unsafe_allow_html=True)
-
-if active_section == "Inicio":
-    st.markdown(
-        '<p class="section-intro">Aqui tienes una vista rapida de lo mas importante de tu recetario.</p>',
-        unsafe_allow_html=True,
-    )
-    quick_choice = st.selectbox(
-        "Que quieres hacer hoy?",
-        [
-            "Ver favoritas",
-            "Buscar una receta",
-            "Agregar una receta nueva",
-            "Ver que puedo cocinar con mis ingredientes",
-        ],
-    )
-    quick_messages = {
-        "Ver favoritas": "Tus favoritas aparecen justo abajo y tambien puedes filtrarlas en la pestana Buscar recetas.",
-        "Buscar una receta": "Usa la pestana Buscar recetas para filtrar por nombre, ingrediente, categoria o solo favoritas.",
-        "Agregar una receta nueva": "Ve a Agregar receta para guardar una nueva con fotos, pasos y notas.",
-        "Ver que puedo cocinar con mis ingredientes": "La pestana Mi cocina compara tus ingredientes con todas las recetas guardadas.",
-    }
+def render_home(recipes: list[dict], favorites: list[dict]) -> None:
     st.markdown(
         f"""
-        <div class="quick-card">
-            <strong>Sugerencia rapida</strong>
-            <p class="inline-kicker">{quick_messages[quick_choice]}</p>
+        <div class="app-top">
+            <div>
+                <p class="hello-title">{greeting_text()}</p>
+                <p class="hello-subtitle">Encuentra una receta facil para hoy.</p>
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    action_col1, action_col2, action_col3 = st.columns(3)
-    with action_col1:
-        st.markdown(
-            """
-            <div class="action-card">
-                <div class="action-title">Guardar una receta</div>
-                <p class="inline-kicker">Entra directo al formulario para anadir ingredientes, pasos y fotos.</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        if st.button("Ir a Agregar receta", key="go_add"):
-            st.session_state.active_section = "Agregar receta"
-            st.rerun()
-    with action_col2:
-        st.markdown(
-            """
-            <div class="action-card">
-                <div class="action-title">Buscar o filtrar</div>
-                <p class="inline-kicker">Encuentra recetas por nombre, ingredientes, categoria o solo favoritas.</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        if st.button("Ir a Buscar recetas", key="go_search"):
-            st.session_state.active_section = "Buscar recetas"
-            st.rerun()
-    with action_col3:
-        st.markdown(
-            """
-            <div class="action-card">
-                <div class="action-title">Usar lo que tienes</div>
-                <p class="inline-kicker">Compara tu cocina actual con las recetas guardadas y mira coincidencias.</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        if st.button("Ir a Mi cocina", key="go_pantry"):
-            st.session_state.active_section = "Mi cocina"
-            st.rerun()
-    col_favorites, col_recent = st.columns(2)
-    with col_favorites:
-        render_recipe_collection(
-            "Favoritas",
-            favorite_recipes[:3],
-            "Todavia no has marcado recetas como favoritas.",
-        )
-    with col_recent:
-        render_recipe_collection(
-            "Recetas guardadas recientemente",
-            recent_recipes[:4],
-            "Todavia no hay recetas guardadas.",
-        )
 
-if active_section == "Agregar receta":
-    st.subheader("Nueva receta")
-    st.caption("Agrega la receta con ingredientes, pasos, notas y fotos.")
-    new_widget_prefix = f"new_{st.session_state.new_form_version}"
-    ingredient_rows, step_rows, uploaded_files = render_editor(
-        new_widget_prefix,
-        get_recipe_defaults(),
+    st.markdown('<div class="search-block">', unsafe_allow_html=True)
+    st.text_input("Buscar", key="home_search", label_visibility="collapsed", placeholder="¿Qué hay en tu nevera?")
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    icons = [
+        ("🥑", "Aguacate"),
+        ("🥚", "Huevo"),
+        ("🥩", "Carne"),
+        ("🥬", "Verdura"),
+        ("🍚", "Arroz"),
+    ]
+    cols = st.columns(5)
+    for index, (emoji, label) in enumerate(icons):
+        with cols[index]:
+            st.markdown(
+                f"""
+                <div class="category-chip">
+                    <div class="category-circle">{emoji}</div>
+                    <div class="category-text">{label}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+    search_key = st.session_state.home_search.strip().lower()
+    filtered = recipes
+    if search_key:
+        filtered = [
+            recipe
+            for recipe in recipes
+            if search_key in recipe["name"].lower()
+            or search_key in recipe["description"].lower()
+            or any(search_key in ingredient["ingredient_name"].lower() for ingredient in recipe["ingredients"])
+        ]
+
+    st.markdown('<p class="section-title">Nuevas Recetas</p>', unsafe_allow_html=True)
+    new_cols = st.columns(2)
+    for index, recipe in enumerate(filtered[:2]):
+        with new_cols[index % 2]:
+            render_recipe_card(recipe, f"home_new_{recipe['id']}", "🍝")
+
+    st.markdown('<p class="section-title">Video Recetas</p>', unsafe_allow_html=True)
+    video_cols = st.columns(2)
+    video_recipes = filtered[2:4] if len(filtered) > 2 else filtered[:2]
+    for index, recipe in enumerate(video_recipes):
+        with video_cols[index % 2]:
+            render_recipe_card(recipe, f"home_video_{recipe['id']}", "▶")
+
+    st.markdown('<p class="section-title">Comunidad</p>', unsafe_allow_html=True)
+    community_cols = st.columns(2)
+    community_recipes = favorites[:2] if favorites else filtered[:2]
+    for index, recipe in enumerate(community_recipes):
+        with community_cols[index % 2]:
+            render_recipe_card(recipe, f"home_community_{recipe['id']}", "🥗")
+
+
+def render_detail(recipe: dict) -> None:
+    top_cols = st.columns([1, 4])
+    with top_cols[0]:
+        if st.button("←", key="detail_back"):
+            close_recipe_detail()
+            st.rerun()
+    with top_cols[1]:
+        st.markdown('<p class="section-title">Receta</p>', unsafe_allow_html=True)
+
+    st.markdown('<div class="detail-hero">', unsafe_allow_html=True)
+    recipe_image_or_placeholder(recipe, "🍽")
+    st.markdown(f'<p class="detail-title">{recipe["name"]}</p>', unsafe_allow_html=True)
+    if recipe["description"]:
+        st.caption(recipe["description"])
+    st.markdown(
+        f"""
+        <div class="stats-row">
+            <div class="stat-pill"><strong>{len(recipe["ingredients"])}</strong><span>Ingredientes</span></div>
+            <div class="stat-pill"><strong>{recipe["difficulty"]}</strong><span>Dificultad</span></div>
+            <div class="stat-pill"><strong>{recipe["prep_time_minutes"] or 0} min</strong><span>Tiempo</span></div>
+            <div class="stat-pill"><strong>{recipe["servings"] or 0}</strong><span>Porciones</span></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    st.radio(
+        "Detalle",
+        ["Ingredientes", "Pasos", "Trucos"],
+        key="detail_view",
+        horizontal=True,
+        label_visibility="collapsed",
     )
 
-    col_save, col_reset = st.columns([1, 1])
-    with col_save:
+    if st.session_state.detail_view == "Ingredientes":
+        for ingredient in recipe["ingredients"]:
+            amount = ingredient["quantity"] or "Al gusto"
+            st.markdown(
+                f"""
+                <div class="ingredient-card">
+                    <strong>{ingredient["ingredient_name"]}</strong><br>
+                    <span class="recipe-soft">{amount}</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+    elif st.session_state.detail_view == "Pasos":
+        for step in recipe["steps"]:
+            st.markdown(
+                f"""
+                <div class="step-card">
+                    <span class="step-number">{step["step_number"]}</span>
+                    {step["instruction"]}
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+    else:
+        if recipe["notes"]:
+            st.markdown(f'<div class="ingredient-card">{recipe["notes"]}</div>', unsafe_allow_html=True)
+        else:
+            st.info("Esta receta aun no tiene consejos extra.")
+
+
+def render_add() -> None:
+    st.markdown('<p class="section-title">Agregar receta</p>', unsafe_allow_html=True)
+    new_widget_prefix = f"new_{st.session_state.new_form_version}"
+    ingredient_rows, step_rows, uploaded_files = render_editor(new_widget_prefix, get_recipe_defaults())
+    save_col, reset_col = st.columns(2)
+    with save_col:
         if st.button("Guardar receta", key="save_new_recipe"):
             try:
                 payload = payload_from_editor(new_widget_prefix, ingredient_rows, step_rows)
                 create_recipe(payload, uploaded_files)
                 reset_new_recipe_form()
-                st.toast("Receta guardada con exito.")
                 st.success("La receta se guardo correctamente.")
-                st.balloons()
+                st.session_state.pending_section = "Recetas"
                 st.rerun()
             except Exception as exc:
                 st.error(str(exc))
-    with col_reset:
+    with reset_col:
         if st.button("Limpiar formulario", key="clear_new_recipe"):
             reset_new_recipe_form()
             st.rerun()
 
-if active_section == "Buscar recetas":
-    st.subheader("Buscar recetas")
-    st.caption("Puedes explorar todas tus recetas o filtrar por nombre, categoria e ingredientes.")
-    filter_col1, filter_col2, filter_col3 = st.columns([2, 1, 1])
-    with filter_col1:
-        search_term = st.text_input(
-            "Busca por nombre o ingrediente",
-            placeholder="Ejemplo: pollo, pasta, tomate...",
-        )
-    with filter_col2:
-        categories = ["Todas"] + get_categories()
-        selected_category = st.selectbox("Categoria", categories)
-    with filter_col3:
-        favorites_only = st.checkbox("Solo favoritas", value=False)
 
-    results = list_recipes(search_term, selected_category)
-    if favorites_only:
+def render_search() -> None:
+    st.markdown('<p class="section-title">Buscar recetas</p>', unsafe_allow_html=True)
+    search_term = st.text_input("Buscar por nombre o ingrediente", placeholder="Sopa, pollo, arroz...")
+    category = st.selectbox("Categoria", ["Todas"] + get_categories())
+    only_favorites = st.checkbox("Solo favoritas")
+    results = list_recipes(search_term, category)
+    if only_favorites:
         results = [recipe for recipe in results if recipe["favorite"]]
-
-    if not results:
+    full_results = [get_recipe(recipe["id"]) for recipe in results]
+    full_results = [recipe for recipe in full_results if recipe]
+    if not full_results:
         st.info("No encontramos recetas con esos filtros.")
-    else:
-        st.caption(f"{len(results)} receta(s) encontradas")
-        for recipe_summary in results:
-            full_recipe = get_recipe(recipe_summary["id"])
-            if full_recipe:
-                render_recipe_card(full_recipe, show_full=False)
+        return
+    cols = st.columns(2)
+    for index, recipe in enumerate(full_results):
+        with cols[index % 2]:
+            render_recipe_card(recipe, f"search_{recipe['id']}", "🍛")
 
-if active_section == "Mi cocina":
-    st.subheader("Ingredientes que tienes ahora")
-    st.caption("Te sugerimos recetas completas o casi completas con base en tu cocina actual.")
-    known_ingredients = get_all_known_ingredients()
+
+def render_pantry() -> None:
+    st.markdown('<p class="section-title">Mi Menu</p>', unsafe_allow_html=True)
     selected_known_ingredients = st.multiselect(
-        "Selecciona ingredientes guardados",
-        known_ingredients,
-        placeholder="Elige de la lista si ya existen en tus recetas",
+        "Ingredientes que ya tienes",
+        get_all_known_ingredients(),
+        placeholder="Selecciona o escribe ingredientes",
     )
-    extra_ingredients = st.text_area(
-        "Agrega otros ingredientes separados por coma o por linea",
-        placeholder="Ejemplo: pollo, arroz, cebolla, crema",
-        height=100,
-    )
+    extra_ingredients = st.text_area("Otros ingredientes", height=90, placeholder="Ejemplo: pollo, crema, cebolla")
     pantry_items = [
         item.strip()
         for item in selected_known_ingredients + extra_ingredients.replace("\n", ",").split(",")
         if item.strip()
     ]
-
-    if pantry_items:
-        st.markdown("**Ingredientes detectados**")
-        st.write(", ".join(pantry_items))
-
-    suggestions = get_pantry_suggestions(pantry_items) if pantry_items else []
     if not pantry_items:
-        st.info("Escribe o selecciona ingredientes para ver sugerencias.")
-    elif not suggestions:
-        st.warning("No hay coincidencias aun. Intenta con mas ingredientes o agrega mas recetas.")
-    else:
-        exact_matches = [item for item in suggestions if item["can_make_now"]]
-        if exact_matches:
-            st.success(f"Puedes preparar {len(exact_matches)} receta(s) completas con lo que tienes.")
+        st.info("Agrega ingredientes para ver sugerencias.")
+        return
+    suggestions = get_pantry_suggestions(pantry_items)
+    if not suggestions:
+        st.warning("Aun no encontramos recetas con esos ingredientes.")
+        return
+    for suggestion in suggestions:
+        recipe = suggestion["recipe"]
+        render_recipe_card(recipe, f'pantry_{recipe["id"]}', "🧺")
+        if suggestion["can_make_now"]:
+            st.success("Puedes prepararla con lo que tienes.")
         else:
-            st.warning("No hay recetas completas con esos ingredientes, pero si hay opciones cercanas.")
+            st.caption("Te falta: " + ", ".join(suggestion["missing_ingredients"]))
 
-        for suggestion in suggestions:
-            recipe = suggestion["recipe"]
-            missing_text = ", ".join(suggestion["missing_ingredients"]) if suggestion["missing_ingredients"] else "No te falta nada"
-            with st.container(border=True):
-                top_left, top_right = st.columns([5, 2])
-                with top_left:
-                    st.markdown(f"### {recipe['name']}")
-                with top_right:
-                    st.markdown(f"`{suggestion['match_percentage']}% coincidencia`")
-                st.caption(
-                    f"Ingredientes cubiertos: {suggestion['matched_ingredients']}/{suggestion['total_ingredients']}"
-                )
-            if suggestion["can_make_now"]:
-                st.success("Lista para cocinar ahora")
-            else:
-                st.info(f"Te falta: {missing_text}")
-            with st.expander("Ver detalles de la receta"):
-                render_recipe_card(recipe, show_full=True)
 
-if active_section == "Administrar":
-    st.subheader("Editar o eliminar recetas")
-    st.caption("Selecciona una receta guardada para cambiar datos, marcar favorita o borrar contenido.")
-    all_recipes = list_recipes()
-    recipe_options = {recipe["name"]: recipe["id"] for recipe in all_recipes}
-    selected_recipe_name = st.selectbox("Selecciona una receta", [""] + list(recipe_options.keys()))
-    if selected_recipe_name:
-        selected_recipe = get_recipe(recipe_options[selected_recipe_name])
-        if selected_recipe:
-            st.markdown("**Vista previa actual**")
-            render_recipe_card(selected_recipe, show_full=False)
+def render_manage() -> None:
+    st.markdown('<p class="section-title">Editar recetas</p>', unsafe_allow_html=True)
+    options = {recipe["name"]: recipe["id"] for recipe in list_recipes()}
+    selected_name = st.selectbox("Selecciona una receta", [""] + list(options.keys()))
+    if not selected_name:
+        st.info("Elige una receta para editarla.")
+        return
+    selected_recipe = get_recipe(options[selected_name])
+    if not selected_recipe:
+        return
+    edit_prefix = f'edit_{selected_recipe["id"]}'
+    edit_ingredients, edit_steps, new_images = render_editor(edit_prefix, get_recipe_defaults(selected_recipe))
+    replace_images = st.checkbox("Reemplazar imagenes actuales")
+    update_col, delete_col = st.columns(2)
+    with update_col:
+        if st.button("Guardar cambios", key="update_recipe_button"):
+            try:
+                payload = payload_from_editor(edit_prefix, edit_ingredients, edit_steps)
+                update_recipe(selected_recipe["id"], payload, new_images, replace_images=replace_images)
+                st.success("La receta se actualizo correctamente.")
+                st.rerun()
+            except Exception as exc:
+                st.error(str(exc))
+    with delete_col:
+        if st.button("Eliminar receta", key="delete_recipe_button"):
+            delete_recipe(selected_recipe["id"])
+            st.success("La receta fue eliminada.")
+            st.rerun()
 
-            existing_images = selected_recipe["images"]
-            if existing_images:
-                st.markdown("**Imagenes actuales**")
-                image_cols = st.columns(min(len(existing_images), 3))
-                for index, image in enumerate(existing_images[:3]):
-                    image_path = Path(image["file_path"])
-                    if image_path.exists():
-                        image_cols[index].image(
-                            str(image_path),
-                            caption=image["original_name"],
-                            width="stretch",
-                        )
 
-            replace_images = st.checkbox("Reemplazar imagenes actuales", value=False)
-            edit_widget_prefix = f"edit_{selected_recipe['id']}"
-            edit_ingredients, edit_steps, new_images = render_editor(
-                edit_widget_prefix,
-                get_recipe_defaults(selected_recipe),
-            )
-
-            col_update, col_delete = st.columns([1, 1])
-            with col_update:
-                if st.button("Guardar cambios", key="update_recipe_button"):
-                    try:
-                        payload = payload_from_editor(edit_widget_prefix, edit_ingredients, edit_steps)
-                        update_recipe(selected_recipe["id"], payload, new_images, replace_images=replace_images)
-                        st.toast("Receta actualizada.")
-                        st.success("La receta se actualizo correctamente.")
-                        st.rerun()
-                    except Exception as exc:
-                        st.error(str(exc))
-            with col_delete:
-                if st.button("Eliminar receta", key="delete_recipe_button"):
-                    delete_recipe(selected_recipe["id"])
-                    st.toast("Receta eliminada.")
-                    st.success("La receta fue eliminada.")
-                    st.rerun()
-
-if active_section == "Compartir":
-    st.subheader("Compartir la app")
-    st.caption("Esta pestana aparece porque agregue una guia para volver publica la app y verla desde otro movil fuera de tu Wi-Fi.")
-    st.info("Si solo la usaras en tu PC o en tu misma red, puedes ignorar esta pestana por completo.")
-
-    with st.expander("Que es la ventana que aparece arriba?"):
-        st.write(
-            "Es el menu de Streamlit. Desde ahi puedes recargar la app, cambiar el tema del visor y abrir la opcion de publicacion. No es un error."
-        )
-
-    with st.expander("Como verla desde otro movil que no este en mi Wi-Fi?"):
+def render_share() -> None:
+    st.markdown('<p class="section-title">Compartir</p>', unsafe_allow_html=True)
+    st.info("Aqui te guiaremos cuando quieras publicar esta app y verla desde cualquier celular.")
+    with st.expander("Como verla desde otro movil con internet?"):
         st.write("1. Sube esta carpeta a GitHub.")
         st.write("2. Entra a Streamlit Community Cloud.")
-        st.write("3. Crea una app usando este proyecto y selecciona `app.py`.")
-        st.write("4. Publica y usa el enlace publico generado.")
+        st.write("3. Selecciona este proyecto y agrega el secreto DATABASE_URL.")
+        st.write("4. Publica y usa el enlace generado.")
 
-    with st.expander("Hay una forma temporal para compartir rapido?"):
-        st.write("Si, con un tunel como `ngrok` o `cloudflared`, pero requiere instalar otra herramienta.")
-        st.write("La forma mas estable para este proyecto sigue siendo Streamlit Community Cloud.")
+
+ensure_state()
+seed_sample_data()
+apply_theme(st.session_state.theme)
+
+full_recipes = build_full_recipe_list()
+favorite_recipes = [recipe for recipe in full_recipes if recipe["favorite"]]
+selected_recipe = get_recipe(st.session_state.selected_recipe_id) if st.session_state.selected_recipe_id else None
+
+st.markdown('<div class="phone-shell">', unsafe_allow_html=True)
+
+top_theme_col, top_stats_col = st.columns([2, 3])
+with top_theme_col:
+    st.radio("Tema", ["Claro", "Oscuro"], key="theme", horizontal=True, label_visibility="collapsed")
+with top_stats_col:
+    stats = get_dashboard_stats()
+    st.caption(f'{stats["recipes"]} recetas · {stats["favorites"]} favoritas · {stats["ingredients"]} ingredientes')
+
+if st.session_state.pending_section:
+    st.session_state.current_section = st.session_state.pending_section
+    st.session_state.nav_choice = st.session_state.pending_section
+    st.session_state.pending_section = None
+
+sections = ["Recetas", "Mi cocina", "Agregar", "Administrar", "Compartir"]
+if st.session_state.current_section == "Detalle":
+    sections = ["Detalle"] + sections
+if st.session_state.nav_choice not in sections:
+    st.session_state.nav_choice = sections[0]
+active_section = st.radio("Navegacion", sections, key="nav_choice", horizontal=True, label_visibility="collapsed")
+st.session_state.current_section = active_section
+
+st.markdown('<div class="soft-divider"></div>', unsafe_allow_html=True)
+
+if active_section == "Detalle":
+    if selected_recipe:
+        render_detail(selected_recipe)
+    else:
+        close_recipe_detail()
+        st.rerun()
+elif active_section == "Recetas":
+    render_home(full_recipes, favorite_recipes)
+elif active_section == "Mi cocina":
+    render_pantry()
+elif active_section == "Agregar":
+    render_add()
+elif active_section == "Administrar":
+    render_manage()
+else:
+    render_share()
+
+st.markdown("</div>", unsafe_allow_html=True)

@@ -17,7 +17,8 @@ Usa `GitHub + Streamlit Community Cloud + Neon Postgres`.
 
 1. Crea un repositorio nuevo.
 2. Sube esta carpeta completa.
-3. Verifica que `requirements.txt`, `runtime.txt` y `app.py` queden en la raiz.
+3. Verifica que `requirements.txt`, `runtime.txt`, `app.py` y la carpeta `.streamlit` queden en la raiz.
+4. No subas `.streamlit/secrets.toml`; solo deja `secrets.example.toml` como referencia.
 
 ## Paso 3. Publicar en Streamlit Community Cloud
 
@@ -32,6 +33,7 @@ DATABASE_URL = "postgresql://usuario:password@host/dbname?sslmode=require"
 ```
 
 6. Pulsa `Deploy`.
+7. Cuando abra, crea o edita una receta para confirmar que la base remota esta guardando datos.
 
 ## Resultado
 
@@ -42,3 +44,7 @@ https://tu-app.streamlit.app
 ```
 
 Esa direccion se puede abrir desde cualquier movil con internet y tus recetas quedaran guardadas en Neon.
+
+## Nota importante sobre las fotos
+
+Las fotos de las recetas ya quedan guardadas dentro de la base de datos. Eso ayuda a que sigan visibles en Streamlit Cloud incluso despues de reinicios o nuevas publicaciones.

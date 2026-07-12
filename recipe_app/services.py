@@ -1,14 +1,14 @@
 from __future__ import annotations
 
+import base64
 from dataclasses import dataclass
-from datetime import datetime
+from mimetypes import guess_type
 from pathlib import Path
 from typing import Iterable
-from uuid import uuid4
 
 from sqlalchemy import exc, text
 
-from recipe_app.db import IMAGES_DIR, get_connection, init_db, is_postgres
+from recipe_app.db import get_connection, init_db, is_postgres
 
 
 @dataclass
@@ -67,17 +67,24 @@ def validate_payload(payload: RecipePayload) -> None:
         raise ValueError("Agrega al menos un paso de preparacion.")
 
 
+def detect_mime_type(uploaded_file) -> str:
+    mime_type = str(getattr(uploaded_file, "type", "") or "").strip()
+    if mime_type:
+        return mime_type
+    guessed_type = guess_type(uploaded_file.name)[0]
+    return guessed_type or "application/octet-stream"
+
+
 def save_uploaded_images(uploaded_files: Iterable) -> list[dict[str, str]]:
     saved_images: list[dict[str, str]] = []
     for uploaded_file in uploaded_files or []:
-        extension = Path(uploaded_file.name).suffix or ".jpg"
-        filename = f"{datetime.now():%Y%m%d%H%M%S}_{uuid4().hex}{extension}"
-        file_path = IMAGES_DIR / filename
-        file_path.write_bytes(uploaded_file.getbuffer())
+        image_bytes = bytes(uploaded_file.getbuffer())
         saved_images.append(
             {
-                "file_path": str(file_path),
+                "file_path": "",
                 "original_name": uploaded_file.name,
+                "mime_type": detect_mime_type(uploaded_file),
+                "image_data_base64": base64.b64encode(image_bytes).decode("ascii"),
             }
         )
     return saved_images
@@ -85,8 +92,11 @@ def save_uploaded_images(uploaded_files: Iterable) -> list[dict[str, str]]:
 
 def cleanup_saved_images(saved_images: Iterable[dict[str, str]]) -> None:
     for image in saved_images:
-        image_path = Path(image["file_path"])
-        if image_path.exists():
+        file_path = str(image.get("file_path", "") or "").strip()
+        if not file_path:
+            continue
+        image_path = Path(file_path)
+        if image_path.exists() and image_path.is_file():
             image_path.unlink()
 
 
@@ -160,8 +170,12 @@ def create_recipe(payload: RecipePayload, uploaded_files: Iterable | None = None
                 connection.execute(
                     text(
                         """
-                        INSERT INTO recipe_images (recipe_id, file_path, original_name)
-                        VALUES (:recipe_id, :file_path, :original_name)
+                        INSERT INTO recipe_images (
+                            recipe_id, file_path, original_name, mime_type, image_data_base64
+                        )
+                        VALUES (
+                            :recipe_id, :file_path, :original_name, :mime_type, :image_data_base64
+                        )
                         """
                     ),
                     [
@@ -169,6 +183,8 @@ def create_recipe(payload: RecipePayload, uploaded_files: Iterable | None = None
                             "recipe_id": recipe_id,
                             "file_path": image["file_path"],
                             "original_name": image["original_name"],
+                            "mime_type": image["mime_type"],
+                            "image_data_base64": image["image_data_base64"],
                         }
                         for image in image_rows
                     ],
@@ -265,16 +281,23 @@ def update_recipe(
                 )
                 connection.execute(text("DELETE FROM recipe_images WHERE recipe_id = :recipe_id"), {"recipe_id": recipe_id})
                 for image in old_images:
-                    image_path = Path(image["file_path"])
-                    if image_path.exists():
+                    file_path = str(image.get("file_path", "") or "").strip()
+                    if not file_path:
+                        continue
+                    image_path = Path(file_path)
+                    if image_path.exists() and image_path.is_file():
                         image_path.unlink()
 
             if image_rows:
                 connection.execute(
                     text(
                         """
-                        INSERT INTO recipe_images (recipe_id, file_path, original_name)
-                        VALUES (:recipe_id, :file_path, :original_name)
+                        INSERT INTO recipe_images (
+                            recipe_id, file_path, original_name, mime_type, image_data_base64
+                        )
+                        VALUES (
+                            :recipe_id, :file_path, :original_name, :mime_type, :image_data_base64
+                        )
                         """
                     ),
                     [
@@ -282,6 +305,8 @@ def update_recipe(
                             "recipe_id": recipe_id,
                             "file_path": image["file_path"],
                             "original_name": image["original_name"],
+                            "mime_type": image["mime_type"],
+                            "image_data_base64": image["image_data_base64"],
                         }
                         for image in image_rows
                     ],
@@ -302,8 +327,11 @@ def delete_recipe(recipe_id: int) -> None:
         connection.execute(text("DELETE FROM recipes WHERE id = :recipe_id"), {"recipe_id": recipe_id})
 
     for image in image_rows:
-        image_path = Path(image["file_path"])
-        if image_path.exists():
+        file_path = str(image.get("file_path", "") or "").strip()
+        if not file_path:
+            continue
+        image_path = Path(file_path)
+        if image_path.exists() and image_path.is_file():
             image_path.unlink()
 
 
@@ -388,7 +416,7 @@ def get_recipe(recipe_id: int) -> dict | None:
         images = connection.execute(
             text(
                 """
-                SELECT id, file_path, original_name
+                SELECT id, file_path, original_name, mime_type, image_data_base64
                 FROM recipe_images
                 WHERE recipe_id = :recipe_id
                 ORDER BY id ASC

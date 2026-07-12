@@ -18,6 +18,7 @@ Proyecto en Python para guardar recetas de cocina con imagenes, buscador, sugere
 - Marcar recetas favoritas.
 - Preparado para publicarse en Streamlit Community Cloud.
 - Compatible con SQLite local y Neon Postgres para datos permanentes.
+- Las fotos quedan guardadas dentro de la base de datos, ideal para la nube.
 
 ## Como ejecutarlo
 
@@ -39,6 +40,7 @@ streamlit run app.py
 
 - En tu PC, la app usa `SQLite` y guarda en `data/recipes.db`.
 - En la nube, puedes usar `Neon Postgres` para que las recetas no se pierdan.
+- Las imagenes tambien quedan guardadas en la base de datos para que sigan visibles despues de reinicios o nuevas publicaciones.
 - Para usar Neon, configura `DATABASE_URL` como secreto de Streamlit Cloud.
 
 ## Verla desde otro movil

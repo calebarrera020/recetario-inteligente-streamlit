@@ -57,6 +57,32 @@ def get_connection():
         yield connection
 
 
+def get_table_columns(connection, table_name: str) -> set[str]:
+    if is_postgres():
+        rows = connection.execute(
+            text(
+                """
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = current_schema()
+                  AND table_name = :table_name
+                """
+            ),
+            {"table_name": table_name},
+        ).fetchall()
+    else:
+        rows = connection.execute(text(f"PRAGMA table_info({table_name})")).fetchall()
+    return {row._mapping["column_name"] if is_postgres() else row._mapping["name"] for row in rows}
+
+
+def ensure_recipe_image_columns(connection) -> None:
+    columns = get_table_columns(connection, "recipe_images")
+    if "mime_type" not in columns:
+        connection.execute(text("ALTER TABLE recipe_images ADD COLUMN mime_type TEXT DEFAULT ''"))
+    if "image_data_base64" not in columns:
+        connection.execute(text("ALTER TABLE recipe_images ADD COLUMN image_data_base64 TEXT DEFAULT ''"))
+
+
 def init_db() -> None:
     if is_postgres():
         schema_sql = """
@@ -92,8 +118,10 @@ def init_db() -> None:
         CREATE TABLE IF NOT EXISTS recipe_images (
             id BIGSERIAL PRIMARY KEY,
             recipe_id BIGINT NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
-            file_path TEXT NOT NULL,
+            file_path TEXT DEFAULT '',
             original_name TEXT NOT NULL,
+            mime_type TEXT DEFAULT '',
+            image_data_base64 TEXT DEFAULT '',
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
 
@@ -134,8 +162,10 @@ def init_db() -> None:
         CREATE TABLE IF NOT EXISTS recipe_images (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             recipe_id INTEGER NOT NULL REFERENCES recipes(id) ON DELETE CASCADE,
-            file_path TEXT NOT NULL,
+            file_path TEXT DEFAULT '',
             original_name TEXT NOT NULL,
+            mime_type TEXT DEFAULT '',
+            image_data_base64 TEXT DEFAULT '',
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
 
@@ -149,3 +179,4 @@ def init_db() -> None:
             connection.execute(text("PRAGMA foreign_keys = ON"))
         for statement in statements:
             connection.execute(text(statement))
+        ensure_recipe_image_columns(connection)
