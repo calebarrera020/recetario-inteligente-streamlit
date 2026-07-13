@@ -441,30 +441,16 @@ def render_editor(widget_prefix: str, defaults: dict) -> tuple[list[dict], list[
         column_config={"quantity": "Cantidad", "ingredient_name": "Ingrediente"},
     )
     st.subheader("Pasos")
-    steps_buffer_key = f"{widget_prefix}_steps_buffer"
-    if steps_buffer_key not in st.session_state:
-        st.session_state[steps_buffer_key] = defaults["steps"]
-    current_steps = st.session_state[steps_buffer_key] or [""]
-    step_rows: list[str] = []
-    for index, current_step in enumerate(current_steps, start=1):
-        step_rows.append(
-            st.text_area(
-                f"Paso {index}",
-                key=f"{widget_prefix}_step_{index}",
-                value=current_step,
-                height=85,
-            )
-        )
-    st.session_state[steps_buffer_key] = step_rows or [""]
-    add_col, remove_col = st.columns(2)
-    with add_col:
-        if st.button("Agregar paso", key=f"{widget_prefix}_add_step"):
-            st.session_state[steps_buffer_key] = (step_rows or [""]) + [""]
-            st.rerun()
-    with remove_col:
-        if len(current_steps) > 1 and st.button("Quitar ultimo", key=f"{widget_prefix}_remove_step"):
-            st.session_state[steps_buffer_key] = step_rows[:-1] or [""]
-            st.rerun()
+    steps_df = pd.DataFrame(
+        [{"instruction": step} for step in defaults["steps"]] or [{"instruction": ""}]
+    )
+    edited_steps = st.data_editor(
+        steps_df,
+        key=f"{widget_prefix}_steps_editor",
+        num_rows="dynamic",
+        width="stretch",
+        column_config={"instruction": "Paso"},
+    )
     st.text_area(
         "Notas",
         key=f"{widget_prefix}_recipe_notes",
@@ -478,6 +464,7 @@ def render_editor(widget_prefix: str, defaults: dict) -> tuple[list[dict], list[
         accept_multiple_files=True,
         key=f"{widget_prefix}_recipe_images",
     )
+    step_rows = edited_steps.get("instruction", pd.Series(dtype=str)).fillna("").tolist()
     return edited_ingredients.to_dict("records"), step_rows, uploaded_files
 
 
@@ -535,7 +522,9 @@ def render_home(recipes: list[dict], favorites: list[dict]) -> None:
     )
 
     st.markdown('<div class="search-block">', unsafe_allow_html=True)
-    st.text_input("Buscar", key="home_search", label_visibility="collapsed", placeholder="¿Qué hay en tu nevera?")
+    with st.form("home_search_form", clear_on_submit=False):
+        st.text_input("Buscar", key="home_search", label_visibility="collapsed", placeholder="¿Qué hay en tu nevera?")
+        st.form_submit_button("Filtrar")
     st.markdown("</div>", unsafe_allow_html=True)
 
     icons = [
@@ -658,30 +647,38 @@ def render_detail(recipe: dict) -> None:
 def render_add() -> None:
     st.markdown('<p class="section-title">Agregar receta</p>', unsafe_allow_html=True)
     new_widget_prefix = f"new_{st.session_state.new_form_version}"
-    ingredient_rows, step_rows, uploaded_files = render_editor(new_widget_prefix, get_recipe_defaults())
-    save_col, reset_col = st.columns(2)
-    with save_col:
-        if st.button("Guardar receta", key="save_new_recipe"):
-            try:
-                payload = payload_from_editor(new_widget_prefix, ingredient_rows, step_rows)
-                create_recipe(payload, uploaded_files)
-                reset_new_recipe_form()
-                st.success("La receta se guardo correctamente.")
-                st.session_state.pending_section = "Recetas"
-                st.rerun()
-            except Exception as exc:
-                st.error(str(exc))
-    with reset_col:
-        if st.button("Limpiar formulario", key="clear_new_recipe"):
+    with st.form(f"{new_widget_prefix}_form", clear_on_submit=False):
+        ingredient_rows, step_rows, uploaded_files = render_editor(new_widget_prefix, get_recipe_defaults())
+        save_col, reset_col = st.columns(2)
+        with save_col:
+            save_recipe = st.form_submit_button("Guardar receta")
+        with reset_col:
+            clear_recipe = st.form_submit_button("Limpiar formulario")
+    if save_recipe:
+        try:
+            payload = payload_from_editor(new_widget_prefix, ingredient_rows, step_rows)
+            create_recipe(payload, uploaded_files)
             reset_new_recipe_form()
+            st.success("La receta se guardo correctamente.")
+            st.session_state.pending_section = "Recetas"
             st.rerun()
+        except Exception as exc:
+            st.error(str(exc))
+    if clear_recipe:
+        reset_new_recipe_form()
+        st.rerun()
 
 
 def render_search() -> None:
     st.markdown('<p class="section-title">Buscar recetas</p>', unsafe_allow_html=True)
-    search_term = st.text_input("Buscar por nombre o ingrediente", placeholder="Sopa, pollo, arroz...")
-    category = st.selectbox("Categoria", ["Todas"] + get_categories())
-    only_favorites = st.checkbox("Solo favoritas")
+    with st.form("search_form", clear_on_submit=False):
+        st.text_input("Buscar por nombre o ingrediente", key="search_term", placeholder="Sopa, pollo, arroz...")
+        st.selectbox("Categoria", ["Todas"] + get_categories(), key="search_category")
+        st.checkbox("Solo favoritas", key="search_only_favorites")
+        st.form_submit_button("Buscar recetas")
+    search_term = st.session_state.get("search_term", "")
+    category = st.session_state.get("search_category", "Todas")
+    only_favorites = st.session_state.get("search_only_favorites", False)
     results = list_recipes(search_term, category)
     if only_favorites:
         results = [recipe for recipe in results if recipe["favorite"]]
@@ -698,12 +695,22 @@ def render_search() -> None:
 
 def render_pantry() -> None:
     st.markdown('<p class="section-title">Mi Menu</p>', unsafe_allow_html=True)
-    selected_known_ingredients = st.multiselect(
-        "Ingredientes que ya tienes",
-        get_all_known_ingredients(),
-        placeholder="Selecciona o escribe ingredientes",
-    )
-    extra_ingredients = st.text_area("Otros ingredientes", height=90, placeholder="Ejemplo: pollo, crema, cebolla")
+    with st.form("pantry_form", clear_on_submit=False):
+        st.multiselect(
+            "Ingredientes que ya tienes",
+            get_all_known_ingredients(),
+            key="pantry_known_ingredients",
+            placeholder="Selecciona o escribe ingredientes",
+        )
+        st.text_area(
+            "Otros ingredientes",
+            key="pantry_extra_ingredients",
+            height=90,
+            placeholder="Ejemplo: pollo, crema, cebolla",
+        )
+        st.form_submit_button("Buscar opciones")
+    selected_known_ingredients = st.session_state.get("pantry_known_ingredients", [])
+    extra_ingredients = st.session_state.get("pantry_extra_ingredients", "")
     pantry_items = [
         item.strip()
         for item in selected_known_ingredients + extra_ingredients.replace("\n", ",").split(",")
@@ -736,23 +743,22 @@ def render_manage() -> None:
     if not selected_recipe:
         return
     edit_prefix = f'edit_{selected_recipe["id"]}'
-    edit_ingredients, edit_steps, new_images = render_editor(edit_prefix, get_recipe_defaults(selected_recipe))
-    replace_images = st.checkbox("Reemplazar imagenes actuales")
-    update_col, delete_col = st.columns(2)
-    with update_col:
-        if st.button("Guardar cambios", key="update_recipe_button"):
-            try:
-                payload = payload_from_editor(edit_prefix, edit_ingredients, edit_steps)
-                update_recipe(selected_recipe["id"], payload, new_images, replace_images=replace_images)
-                st.success("La receta se actualizo correctamente.")
-                st.rerun()
-            except Exception as exc:
-                st.error(str(exc))
-    with delete_col:
-        if st.button("Eliminar receta", key="delete_recipe_button"):
-            delete_recipe(selected_recipe["id"])
-            st.success("La receta fue eliminada.")
+    with st.form(f"{edit_prefix}_form", clear_on_submit=False):
+        edit_ingredients, edit_steps, new_images = render_editor(edit_prefix, get_recipe_defaults(selected_recipe))
+        replace_images = st.checkbox("Reemplazar imagenes actuales", key=f"{edit_prefix}_replace_images")
+        save_changes = st.form_submit_button("Guardar cambios")
+    if save_changes:
+        try:
+            payload = payload_from_editor(edit_prefix, edit_ingredients, edit_steps)
+            update_recipe(selected_recipe["id"], payload, new_images, replace_images=replace_images)
+            st.success("La receta se actualizo correctamente.")
             st.rerun()
+        except Exception as exc:
+            st.error(str(exc))
+    if st.button("Eliminar receta", key="delete_recipe_button"):
+        delete_recipe(selected_recipe["id"])
+        st.success("La receta fue eliminada.")
+        st.rerun()
 
 
 def render_share() -> None:
