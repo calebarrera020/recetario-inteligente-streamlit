@@ -4,7 +4,6 @@ from datetime import datetime
 import base64
 from pathlib import Path
 
-import pandas as pd
 import streamlit as st
 
 from recipe_app.services import (
@@ -293,12 +292,11 @@ def apply_theme(theme_name: str) -> None:
             }}
             div[data-baseweb="select"] > div,
             div[data-baseweb="input"] > div,
-            div[data-baseweb="textarea"] > div,
-            textarea,
-            input {{
-                background: transparent;
+            div[data-baseweb="textarea"] > div {{
+                background: rgba(255,255,255,0.22) !important;
                 color: var(--text) !important;
-                border: none;
+                border: 1px solid var(--border) !important;
+                border-radius: 16px !important;
             }}
             [data-testid="stTextArea"] textarea,
             [data-testid="stTextInput"] input,
@@ -308,6 +306,7 @@ def apply_theme(theme_name: str) -> None:
                 color: var(--text) !important;
                 -webkit-text-fill-color: var(--text) !important;
                 caret-color: var(--text) !important;
+                background: transparent !important;
             }}
             [data-testid="stTextArea"] textarea::placeholder,
             [data-testid="stTextInput"] input::placeholder,
@@ -317,25 +316,12 @@ def apply_theme(theme_name: str) -> None:
                 -webkit-text-fill-color: var(--muted) !important;
                 opacity: 1 !important;
             }}
-            [data-testid="stDataFrame"] [role="gridcell"],
-            [data-testid="stDataFrame"] [role="columnheader"],
-            [data-testid="stDataFrame"] input,
-            [data-testid="stDataFrame"] textarea {{
+            [data-testid="stTextArea"] label,
+            [data-testid="stTextInput"] label,
+            [data-testid="stNumberInput"] label,
+            [data-testid="stSelectbox"] label,
+            [data-testid="stCheckbox"] label {{
                 color: var(--text) !important;
-                -webkit-text-fill-color: var(--text) !important;
-                caret-color: var(--text) !important;
-            }}
-            [data-testid="stDataFrameToolbar"] button,
-            [data-testid="stDataFrameToolbar"] span,
-            [data-testid="stDataFrameToolbar"] svg,
-            [data-testid="stDataFrameToolbar"] svg path {{
-                color: var(--text) !important;
-                fill: var(--text) !important;
-                stroke: var(--text) !important;
-                opacity: 1 !important;
-            }}
-            [data-testid="stDataFrameToolbar"] button:hover {{
-                background: rgba(255,255,255,0.08) !important;
             }}
             [data-testid="stExpander"] {{
                 border: 1px solid var(--border);
@@ -479,6 +465,40 @@ def payload_from_editor(widget_prefix: str, ingredient_rows: list[dict], step_ro
     )
 
 
+def ingredients_to_text(rows: list[dict]) -> str:
+    lines = []
+    for row in rows:
+        quantity = str(row.get("quantity", "") or "").strip()
+        name = str(row.get("ingredient_name", "") or "").strip()
+        if not name:
+            continue
+        lines.append(f"{quantity} | {name}" if quantity else name)
+    return "\n".join(lines)
+
+
+def parse_ingredient_text(value: str) -> list[dict]:
+    parsed_rows = []
+    for raw_line in value.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        if "|" in line:
+            quantity, ingredient_name = line.split("|", 1)
+        else:
+            quantity, ingredient_name = "", line
+        parsed_rows.append(
+            {
+                "quantity": quantity.strip(),
+                "ingredient_name": ingredient_name.strip(),
+            }
+        )
+    return parsed_rows
+
+
+def steps_to_text(steps: list[str]) -> str:
+    return "\n".join(step.strip() for step in steps if str(step).strip())
+
+
 def render_editor(widget_prefix: str, defaults: dict) -> tuple[list[dict], list[str], list]:
     st.text_input("Nombre de la receta", key=f"{widget_prefix}_recipe_name", value=defaults["name"])
     col1, col2 = st.columns(2)
@@ -505,24 +525,22 @@ def render_editor(widget_prefix: str, defaults: dict) -> tuple[list[dict], list[
         placeholder="Cuenta brevemente de que trata la receta.",
     )
     st.subheader("Ingredientes")
-    ingredients_df = pd.DataFrame(defaults["ingredients"])
-    edited_ingredients = st.data_editor(
-        ingredients_df,
-        key=f"{widget_prefix}_ingredients_editor",
-        num_rows="dynamic",
-        width="stretch",
-        column_config={"quantity": "Cantidad", "ingredient_name": "Ingrediente"},
+    st.caption("Escribe un ingrediente por linea. Usa el formato: cantidad | ingrediente")
+    ingredient_text = st.text_area(
+        "Lista de ingredientes",
+        key=f"{widget_prefix}_ingredients_text",
+        value=ingredients_to_text(defaults["ingredients"]),
+        height=150,
+        placeholder="2 tazas | arroz\n1 cucharada | sal\nPollo",
     )
     st.subheader("Pasos")
-    steps_df = pd.DataFrame(
-        [{"instruction": step} for step in defaults["steps"]] or [{"instruction": ""}]
-    )
-    edited_steps = st.data_editor(
-        steps_df,
-        key=f"{widget_prefix}_steps_editor",
-        num_rows="dynamic",
-        width="stretch",
-        column_config={"instruction": "Paso"},
+    st.caption("Escribe un paso por linea.")
+    steps_text = st.text_area(
+        "Pasos de preparacion",
+        key=f"{widget_prefix}_steps_text",
+        value=steps_to_text(defaults["steps"]),
+        height=180,
+        placeholder="Lava los ingredientes.\nCocina a fuego medio por 15 minutos.\nSirve y disfruta.",
     )
     st.text_area(
         "Notas",
@@ -537,8 +555,9 @@ def render_editor(widget_prefix: str, defaults: dict) -> tuple[list[dict], list[
         accept_multiple_files=True,
         key=f"{widget_prefix}_recipe_images",
     )
-    step_rows = edited_steps.get("instruction", pd.Series(dtype=str)).fillna("").tolist()
-    return edited_ingredients.to_dict("records"), step_rows, uploaded_files
+    ingredient_rows = parse_ingredient_text(ingredient_text)
+    step_rows = [line.strip() for line in steps_text.splitlines() if line.strip()]
+    return ingredient_rows, step_rows, uploaded_files
 
 
 def recipe_image_or_placeholder(recipe: dict, key: str) -> None:
