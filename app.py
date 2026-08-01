@@ -293,11 +293,49 @@ def apply_theme(theme_name: str) -> None:
             }}
             div[data-baseweb="select"] > div,
             div[data-baseweb="input"] > div,
+            div[data-baseweb="textarea"] > div,
             textarea,
             input {{
                 background: transparent;
-                color: var(--text);
+                color: var(--text) !important;
                 border: none;
+            }}
+            [data-testid="stTextArea"] textarea,
+            [data-testid="stTextInput"] input,
+            [data-testid="stNumberInput"] input,
+            [data-baseweb="base-input"] input,
+            [data-baseweb="textarea"] textarea {{
+                color: var(--text) !important;
+                -webkit-text-fill-color: var(--text) !important;
+                caret-color: var(--text) !important;
+            }}
+            [data-testid="stTextArea"] textarea::placeholder,
+            [data-testid="stTextInput"] input::placeholder,
+            [data-testid="stNumberInput"] input::placeholder,
+            [data-baseweb="textarea"] textarea::placeholder {{
+                color: var(--muted) !important;
+                -webkit-text-fill-color: var(--muted) !important;
+                opacity: 1 !important;
+            }}
+            [data-testid="stDataFrame"] [role="gridcell"],
+            [data-testid="stDataFrame"] [role="columnheader"],
+            [data-testid="stDataFrame"] input,
+            [data-testid="stDataFrame"] textarea {{
+                color: var(--text) !important;
+                -webkit-text-fill-color: var(--text) !important;
+                caret-color: var(--text) !important;
+            }}
+            [data-testid="stDataFrameToolbar"] button,
+            [data-testid="stDataFrameToolbar"] span,
+            [data-testid="stDataFrameToolbar"] svg,
+            [data-testid="stDataFrameToolbar"] svg path {{
+                color: var(--text) !important;
+                fill: var(--text) !important;
+                stroke: var(--text) !important;
+                opacity: 1 !important;
+            }}
+            [data-testid="stDataFrameToolbar"] button:hover {{
+                background: rgba(255,255,255,0.08) !important;
             }}
             [data-testid="stExpander"] {{
                 border: 1px solid var(--border);
