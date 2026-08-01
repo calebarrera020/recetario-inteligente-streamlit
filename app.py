@@ -45,6 +45,9 @@ def apply_theme(theme_name: str) -> None:
             "shadow": "rgba(137, 102, 178, 0.12)",
             "button_text": "#ffffff",
             "shell_shadow": "rgba(126, 93, 168, 0.22)",
+            "field_bg": "#fffdfd",
+            "field_text": "#3d3150",
+            "field_placeholder": "#8f819f",
         },
         "Oscuro": {
             "bg": "#2e2441",
@@ -60,6 +63,9 @@ def apply_theme(theme_name: str) -> None:
             "shadow": "rgba(0, 0, 0, 0.18)",
             "button_text": "#2b2140",
             "shell_shadow": "rgba(0, 0, 0, 0.28)",
+            "field_bg": "#f5eefc",
+            "field_text": "#2f2144",
+            "field_placeholder": "#7d6b92",
         },
     }
     palette = themes[theme_name]
@@ -80,6 +86,9 @@ def apply_theme(theme_name: str) -> None:
                 --shadow: {palette["shadow"]};
                 --button-text: {palette["button_text"]};
                 --shell-shadow: {palette["shell_shadow"]};
+                --field-bg: {palette["field_bg"]};
+                --field-text: {palette["field_text"]};
+                --field-placeholder: {palette["field_placeholder"]};
             }}
             .stApp {{
                 background:
@@ -290,30 +299,65 @@ def apply_theme(theme_name: str) -> None:
                 font-weight: 700;
                 box-shadow: 0 8px 18px var(--shadow);
             }}
+            .stTextInput > div > div,
+            .stTextArea > div > div,
+            .stNumberInput > div > div,
+            .stSelectbox > div > div,
             div[data-baseweb="select"] > div,
             div[data-baseweb="input"] > div,
-            div[data-baseweb="textarea"] > div {{
-                background: rgba(255,255,255,0.22) !important;
-                color: var(--text) !important;
+            div[data-baseweb="textarea"] > div,
+            [data-baseweb="base-input"] {{
+                background: var(--field-bg) !important;
+                color: var(--field-text) !important;
                 border: 1px solid var(--border) !important;
                 border-radius: 16px !important;
+                box-shadow: none !important;
+                opacity: 1 !important;
+            }}
+            .stTextInput input,
+            .stTextArea textarea,
+            .stNumberInput input,
+            .stSelectbox input,
+            .stApp input:not([type="checkbox"]):not([type="radio"]),
+            .stApp textarea,
+            [data-baseweb="base-input"] input,
+            [data-baseweb="textarea"] textarea,
+            [contenteditable="true"] {{
+                color: var(--field-text) !important;
+                -webkit-text-fill-color: var(--field-text) !important;
+                caret-color: var(--field-text) !important;
+                background: transparent !important;
+                opacity: 1 !important;
+                text-shadow: none !important;
             }}
             [data-testid="stTextArea"] textarea,
             [data-testid="stTextInput"] input,
             [data-testid="stNumberInput"] input,
             [data-baseweb="base-input"] input,
             [data-baseweb="textarea"] textarea {{
-                color: var(--text) !important;
-                -webkit-text-fill-color: var(--text) !important;
-                caret-color: var(--text) !important;
+                color: var(--field-text) !important;
+                -webkit-text-fill-color: var(--field-text) !important;
+                caret-color: var(--field-text) !important;
                 background: transparent !important;
+            }}
+            .stTextInput input:focus,
+            .stTextArea textarea:focus,
+            .stNumberInput input:focus,
+            .stApp input:focus,
+            .stApp textarea:focus {{
+                color: var(--field-text) !important;
+                -webkit-text-fill-color: var(--field-text) !important;
+                background: transparent !important;
+                outline: none !important;
             }}
             [data-testid="stTextArea"] textarea::placeholder,
             [data-testid="stTextInput"] input::placeholder,
             [data-testid="stNumberInput"] input::placeholder,
+            .stApp input::placeholder,
+            .stApp textarea::placeholder,
             [data-baseweb="textarea"] textarea::placeholder {{
-                color: var(--muted) !important;
-                -webkit-text-fill-color: var(--muted) !important;
+                color: var(--field-placeholder) !important;
+                -webkit-text-fill-color: var(--field-placeholder) !important;
                 opacity: 1 !important;
             }}
             [data-testid="stTextArea"] label,
