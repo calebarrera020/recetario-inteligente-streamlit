@@ -59,7 +59,7 @@ def apply_theme(theme_name: str) -> None:
             "accent_strong": "#efdefe",
             "border": "#826c9b",
             "shadow": "rgba(0, 0, 0, 0.18)",
-            "button_text": "#ffffff",
+            "button_text": "#2b2140",
             "shell_shadow": "rgba(0, 0, 0, 0.28)",
         },
     }
@@ -278,6 +278,18 @@ def apply_theme(theme_name: str) -> None:
                 color: var(--button-text);
                 width: 100%;
                 min-height: 44px;
+                font-weight: 700;
+                box-shadow: 0 8px 18px var(--shadow);
+            }}
+            .stFormSubmitButton > button {{
+                border-radius: 999px;
+                border: 1px solid var(--accent);
+                background: linear-gradient(180deg, var(--accent), var(--accent-strong));
+                color: var(--button-text);
+                width: 100%;
+                min-height: 44px;
+                font-weight: 700;
+                box-shadow: 0 8px 18px var(--shadow);
             }}
             div[data-baseweb="select"] > div,
             div[data-baseweb="input"] > div,
@@ -338,6 +350,29 @@ def ensure_state() -> None:
         st.session_state.detail_view = "Ingredientes"
     if "home_search" not in st.session_state:
         st.session_state.home_search = ""
+    if "flash_message" not in st.session_state:
+        st.session_state.flash_message = ""
+    if "flash_kind" not in st.session_state:
+        st.session_state.flash_kind = "success"
+
+
+def set_flash_message(message: str, kind: str = "success") -> None:
+    st.session_state.flash_message = message
+    st.session_state.flash_kind = kind
+
+
+def show_flash_message() -> None:
+    message = st.session_state.get("flash_message", "")
+    if not message:
+        return
+    kind = st.session_state.get("flash_kind", "success")
+    if kind == "error":
+        st.error(message)
+    elif kind == "warning":
+        st.warning(message)
+    else:
+        st.success(message)
+    st.session_state.flash_message = ""
 
 
 def greeting_text() -> str:
@@ -509,6 +544,7 @@ def build_full_recipe_list() -> list[dict]:
 
 
 def render_home(recipes: list[dict], favorites: list[dict]) -> None:
+    show_flash_message()
     st.markdown(
         f"""
         <div class="app-top">
@@ -557,6 +593,12 @@ def render_home(recipes: list[dict], favorites: list[dict]) -> None:
             or search_key in recipe["description"].lower()
             or any(search_key in ingredient["ingredient_name"].lower() for ingredient in recipe["ingredients"])
         ]
+    if not recipes:
+        st.info("Todavía no hay recetas guardadas.")
+        return
+    if search_key and not filtered:
+        st.warning("No encontramos recetas con esa búsqueda.")
+        return
 
     st.markdown('<p class="section-title">Nuevas Recetas</p>', unsafe_allow_html=True)
     new_cols = st.columns(2)
@@ -577,6 +619,12 @@ def render_home(recipes: list[dict], favorites: list[dict]) -> None:
     for index, recipe in enumerate(community_recipes):
         with community_cols[index % 2]:
             render_recipe_card(recipe, f"home_community_{recipe['id']}", "🥗")
+
+    st.markdown('<p class="section-title">Todas tus recetas</p>', unsafe_allow_html=True)
+    all_cols = st.columns(2)
+    for index, recipe in enumerate(filtered):
+        with all_cols[index % 2]:
+            render_recipe_card(recipe, f"home_all_{recipe['id']}", "🍽")
 
 
 def render_detail(recipe: dict) -> None:
@@ -646,6 +694,7 @@ def render_detail(recipe: dict) -> None:
 
 def render_add() -> None:
     st.markdown('<p class="section-title">Agregar receta</p>', unsafe_allow_html=True)
+    show_flash_message()
     new_widget_prefix = f"new_{st.session_state.new_form_version}"
     with st.form(f"{new_widget_prefix}_form", clear_on_submit=False):
         ingredient_rows, step_rows, uploaded_files = render_editor(new_widget_prefix, get_recipe_defaults())
@@ -659,8 +708,7 @@ def render_add() -> None:
             payload = payload_from_editor(new_widget_prefix, ingredient_rows, step_rows)
             create_recipe(payload, uploaded_files)
             reset_new_recipe_form()
-            st.success("La receta se guardo correctamente.")
-            st.session_state.pending_section = "Recetas"
+            set_flash_message("La receta se guardó correctamente.")
             st.rerun()
         except Exception as exc:
             st.error(str(exc))
@@ -734,6 +782,7 @@ def render_pantry() -> None:
 
 def render_manage() -> None:
     st.markdown('<p class="section-title">Editar recetas</p>', unsafe_allow_html=True)
+    show_flash_message()
     options = {recipe["name"]: recipe["id"] for recipe in list_recipes()}
     selected_name = st.selectbox("Selecciona una receta", [""] + list(options.keys()))
     if not selected_name:
@@ -751,13 +800,13 @@ def render_manage() -> None:
         try:
             payload = payload_from_editor(edit_prefix, edit_ingredients, edit_steps)
             update_recipe(selected_recipe["id"], payload, new_images, replace_images=replace_images)
-            st.success("La receta se actualizo correctamente.")
+            set_flash_message("La receta se actualizó correctamente.")
             st.rerun()
         except Exception as exc:
             st.error(str(exc))
     if st.button("Eliminar receta", key="delete_recipe_button"):
         delete_recipe(selected_recipe["id"])
-        st.success("La receta fue eliminada.")
+        set_flash_message("La receta fue eliminada.", "warning")
         st.rerun()
 
 

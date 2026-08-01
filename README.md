@@ -42,6 +42,7 @@ streamlit run app.py
 - En la nube, puedes usar `Neon Postgres` para que las recetas no se pierdan.
 - Las imagenes tambien quedan guardadas en la base de datos para que sigan visibles despues de reinicios o nuevas publicaciones.
 - Para usar Neon, configura `DATABASE_URL` como secreto de Streamlit Cloud.
+- Si quieres que solo ciertas personas entren, cambia la app a modo privado desde la seccion `Sharing` de Streamlit Cloud e invita sus correos.
 
 ## Verla desde otro movil
 
