@@ -4,3 +4,5 @@ data/images/*
 !data/images/.gitkeep
 data/recipes.db
 .streamlit/secrets.toml
+github_upload_package_*/
+github_upload_package_*.zip

@@ -8,7 +8,7 @@ from typing import Iterable
 
 from sqlalchemy import exc, text
 
-from recipe_app.db import get_connection, init_db, is_postgres
+from recipe_app.db import get_connection, is_postgres
 
 
 @dataclass
@@ -517,70 +517,3 @@ def get_pantry_suggestions(pantry_items: Iterable[str]) -> list[dict]:
     )
     return suggestions
 
-
-def seed_sample_data() -> None:
-    init_db()
-    with get_connection() as connection:
-        current_count = connection.execute(text("SELECT COUNT(*) AS total FROM recipes")).scalar_one()
-        if int(current_count) > 0:
-            return
-
-    create_recipe(
-        RecipePayload(
-            name="Pasta con tomate y albahaca",
-            description="Una receta rapida, fresca y facil para almuerzo o cena.",
-            category="Almuerzo",
-            prep_time_minutes=25,
-            servings=2,
-            difficulty="Facil",
-            notes="Puedes agregar queso rallado al servir.",
-            favorite=True,
-            ingredients=clean_ingredients(
-                [
-                    {"quantity": "250 g", "ingredient_name": "Pasta"},
-                    {"quantity": "4", "ingredient_name": "Tomates"},
-                    {"quantity": "2 dientes", "ingredient_name": "Ajo"},
-                    {"quantity": "8 hojas", "ingredient_name": "Albahaca"},
-                    {"quantity": "2 cucharadas", "ingredient_name": "Aceite de oliva"},
-                ]
-            ),
-            steps=clean_steps(
-                [
-                    "Hervir la pasta en agua con sal hasta que quede al dente.",
-                    "Sofreir el ajo con el aceite de oliva durante 1 minuto.",
-                    "Agregar los tomates picados y cocinar hasta formar una salsa ligera.",
-                    "Mezclar la pasta con la salsa y terminar con albahaca fresca.",
-                ]
-            ),
-        )
-    )
-
-    create_recipe(
-        RecipePayload(
-            name="Omelette de vegetales",
-            description="Ideal para desayunos o cenas ligeras con lo que tengas en casa.",
-            category="Desayuno",
-            prep_time_minutes=15,
-            servings=1,
-            difficulty="Facil",
-            notes="Funciona bien con queso, cebolla o espinaca.",
-            favorite=False,
-            ingredients=clean_ingredients(
-                [
-                    {"quantity": "2", "ingredient_name": "Huevos"},
-                    {"quantity": "1/4 taza", "ingredient_name": "Pimiento"},
-                    {"quantity": "1/4 taza", "ingredient_name": "Cebolla"},
-                    {"quantity": "1 cucharada", "ingredient_name": "Mantequilla"},
-                    {"quantity": "Al gusto", "ingredient_name": "Sal"},
-                ]
-            ),
-            steps=clean_steps(
-                [
-                    "Batir los huevos con sal.",
-                    "Saltear cebolla y pimiento con mantequilla.",
-                    "Agregar los huevos y cocinar a fuego bajo hasta que cuaje.",
-                    "Doblar el omelette y servir caliente.",
-                ]
-            ),
-        )
-    )
